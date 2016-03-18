@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jdbc="http://www.springframework.org/schema/jdbc" xmlns:ns2="null" xmlns:ns3="null" xsi:schemaLocation="        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd        http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd      http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd">
+	<!-- the camel context -->
+	
+	<camelContext xmlns="http://camel.apache.org/schema/spring" id="camel" autoStartup="true">
+		<jmxAgent id="agent" createConnector="true" registryPort="1399"/>
+		<dataFormats>
+			<json id="jack" library="Jackson"/>
+		</dataFormats>
+		<route id="mytest33333">
+			<from uri="jms:queue:aaaa"/>
+			<to uri="log:toto3333"/>
+			<to uri="jms:queue:bbbb"/>
+		</route>
+	</camelContext>
+	
+	<bean id="jms" class="org.apache.activemq.camel.component.ActiveMQComponent">
+		<property name="brokerURL" value="tcp://127.0.0.1:61616"/>
+	</bean>
+</beans>
