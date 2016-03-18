@@ -54,29 +54,7 @@
                     <argLine>-Djava.library.path="${basedir}/nativelibraries"</argLine>
                 </configuration>
             </plugin>            
-      
-            <plugin>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>install</phase>
-                        <configuration>
-                            <tasks>
-                                <copy todir="${project.build.directory}/lib" >
-                                    <fileset dir="nativelibraries"/>
-                                </copy>                                
-                                <copy todir="${project.build.directory}" >
-                                    <fileset dir="webui"/>
-                                </copy>
-                                <delete file="${project.build.directory}/findbugs/findbugsXml.html"/>	
-                            </tasks>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+                  
             
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -268,6 +246,20 @@
             <artifactId>slf4j-api</artifactId>
             <version>1.7.5</version>
         </dependency>               
+
+        <!-- JOLOKIA -->
+
+        <dependency>
+            <groupId>org.jolokia</groupId>
+            <artifactId>jolokia-core</artifactId>
+            <version>1.1.0</version>
+         </dependency>
+
+        <dependency>
+          <groupId>org.jolokia</groupId>
+          <artifactId>jolokia-spring</artifactId>
+          <version>1.1.0</version>
+        </dependency>  
 
         <!-- CAMEL -->
          
