@@ -71,109 +71,7 @@
                 </executions>
             </plugin>
       
-            <plugin>
-                <groupId>org.apache.camel</groupId>
-                <artifactId>camel-maven-plugin</artifactId>
-                <version>${camel.version}</version>
-                <configuration>
-                    <logClasspath>true</logClasspath>
-                    <!--fileApplicationContextUri>file:/Users/snuids/Code/FCT/CamelWorker/PubSubMQ.xml</fileApplicationContextUri-->
-                    <fileApplicationContextUri>file:/Users/snuids/Desktop/APSB-YYZ.xml</fileApplicationContextUri>
-                    <fileApplicationContextUri>file:/Users/snuids/Desktop/APSB-Printers.xml</fileApplicationContextUri>
-                </configuration>
-            </plugin>													
-					 	
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-                <version>2.5.2</version>                
-                <configuration>
-                    <findbugsXmlOutputDirectory>
-                        ${project.build.directory}/findbugs
-                    </findbugsXmlOutputDirectory>
-                    <excludeFilterFile>${basedir}/findbugs-exclude.xml</excludeFilterFile>
-                    <failOnError>false</failOnError>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>xml-maven-plugin</artifactId>
-                <version>1.0</version>
-                <executions>
-                    <execution>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>transform</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <transformationSets>
-                        <transformationSet>
-                            <dir>${project.build.directory}/findbugs</dir>
-                            <outputDir>${project.build.directory}/findbugs</outputDir>
-                            <!--stylesheet>fancy-hist.xsl</stylesheet-->
-                            <stylesheet>default.xsl</stylesheet>
-                            <!--<stylesheet>plain.xsl</stylesheet>-->
-                            <!--<stylesheet>fancy.xsl</stylesheet>-->
-                            <!--<stylesheet>summary.xsl</stylesheet>-->
-                            <fileMappers>
-                                <fileMapper
-                                    implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
-                                    <targetExtension>.html</targetExtension>
-                                </fileMapper>
-                            </fileMappers>
-                        </transformationSet>
-                    </transformationSets>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.google.code.findbugs</groupId>
-                        <artifactId>findbugs</artifactId>
-                        <version>2.0.0</version>
-                    </dependency>
-                </dependencies>
-            </plugin>
             
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>license-maven-plugin</artifactId>
-                <version>1.5</version>
-                <executions>
-                    <execution>
-                        <id>download-licenses</id>
-                        <goals>
-                            <goal>download-licenses</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            
-            <!--plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>buildnumber-maven-plugin</artifactId>
-                <version>1.2</version>
-                <executions>
-                    <execution>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>create</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <revisionOnScmFailure>NA</revisionOnScmFailure>
-                    <doCheck>true</doCheck>
-                    <doUpdate>true</doUpdate>
-                </configuration>
-            </plugin-->
-            
-            <!--plugin>
-                <groupId>net.sf</groupId>
-                <artifactId>stat-scm</artifactId>    
-                <version>1.2.0</version>
-            </plugin-->
             
         </plugins>
     </build>
@@ -350,6 +248,11 @@
         </dependency>
         
         
+        <dependency>
+          <groupId>org.apache.camel</groupId>
+          <artifactId>camel-csv</artifactId>
+          <version>${camel.version}</version>
+        </dependency>
 
         <!-- ActiveMQ -->
 
@@ -425,7 +328,12 @@
             <version>1.4</version>
         </dependency>
 
-        			
+        <!-- POI -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>3.14</version>
+        </dependency>			
 
         <!-- Jackson -->
 

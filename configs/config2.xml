@@ -22,12 +22,21 @@
 		<route id="readxls">
 	    <from uri="file:/Users/snuids/Desktop/Test?delete=true"/>
 			<to uri="log:toto3333"/>
+			<unmarshal>
+			    <custom ref="excel" />
+			</unmarshal>
+			<marshal ref="jack"/>	
+ 			<to uri="log:toto4444"/>
 			<to uri="jms:queue:bbbb"/>
 		</route>
 	</camelContext>
 	
 	<bean id="jms" class="org.apache.activemq.camel.component.ActiveMQComponent">
 		<property name="brokerURL" value="tcp://127.0.0.1:61616"/>
+	</bean>
+	
+	<bean id="excel" class="helpers.ExcelDataFormat">
+		<property name="importType" value="FORMATTED"/>
 	</bean>
 	
 	<jolokia:agent lookupConfig="false" systemPropertiesMode="never">
