@@ -164,9 +164,11 @@ public class ExcelDataFormat implements DataFormat {
 
                 int coln=0;
                 
-                for (Iterator<Cell> cellIterator = row.cellIterator(); cellIterator.hasNext();)
+                //for (Iterator<Cell> cellIterator = row.cellIterator(); cellIterator.hasNext();)
+                for(int cn=0; cn<row.getLastCellNum(); cn++)
                 {                    
-                    Cell cell=cellIterator.next();
+                    Cell cell = row.getCell(cn, Row.CREATE_NULL_AS_BLANK);
+                    //Cell cell=cellIterator.next();
                     //logger.info("Cell type:"+cell.getCellType());
                     if(onesheet.columns.size()>coln)
                     {
