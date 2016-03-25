@@ -64,13 +64,25 @@ public class ExcelDataFormat implements DataFormat {
         //Get first sheet from the workbook
         HSSFSheet sheet = workbook.getSheetAt(0);
         
-        if(importType == ImportType.FORMATTED)
+        if(importType != ImportType.FORMATTED)
         {
-            return marshalAsStructure(sheet);
+            return marshalAsArray(sheet);
         }
         else
         {
-            return marshalAsArray(sheet);
+            OneExcel    excel=new OneExcel();
+            for(int i=0;i<workbook.getNumberOfSheets();i++)
+            {
+                OneExcelSheet onesheet=marshalAsStructure(workbook.getSheetAt(i));
+                logger.info("Loading sheet:"+i);
+                logger.info("Data:"+onesheet.data.size());
+                if(onesheet.data.size()>0)
+                    excel.sheets.add(onesheet);
+            }
+            logger.info("Total sheets:"+excel.sheets.size());
+            
+            return excel.GenerateResult();
+            
         }
     }
 
@@ -92,17 +104,17 @@ public class ExcelDataFormat implements DataFormat {
                 {                    
                     case HSSFCell.CELL_TYPE_NUMERIC:
                         if (HSSFDateUtil.isCellDateFormatted(cell)) {
-                            logger.info(cell.getCellType()+"="+cell.getDateCellValue());
+                            //logger.info(cell.getCellType()+"="+cell.getDateCellValue());
                             newrow.add(cell.getDateCellValue());
                         }
                         else
                         {
-                            logger.info(cell.getCellType()+"="+cell.getNumericCellValue());
+                            //logger.info(cell.getCellType()+"="+cell.getNumericCellValue());
                             newrow.add(cell.getNumericCellValue());
                         }
                         break;
                     default:
-                        logger.info(cell.getCellType()+"="+cell.getStringCellValue());
+                        //logger.info(cell.getCellType()+"="+cell.getStringCellValue());
                         newrow.add(cell.getStringCellValue());
                         break;
                         
@@ -113,9 +125,9 @@ public class ExcelDataFormat implements DataFormat {
         return results;  
     }
     
-    public Object marshalAsStructure(HSSFSheet sheet)
+    public OneExcelSheet marshalAsStructure(HSSFSheet sheet)
     {
-        ArrayList<HashMap<String,Object>> results=new ArrayList<HashMap<String,Object>>();
+        OneExcelSheet onesheet=new OneExcelSheet();
         
         ArrayList<String> headers=null;
         
@@ -127,6 +139,7 @@ public class ExcelDataFormat implements DataFormat {
             if(headers==null)
             {
                 headers=new ArrayList<String>();
+                int coln=0;
                 for (Iterator<Cell> cellIterator = row.cellIterator(); cellIterator.hasNext();)
                 {
                     try
@@ -134,45 +147,56 @@ public class ExcelDataFormat implements DataFormat {
                         Cell cell=cellIterator.next();
                         logger.info("Header:"+cell.getStringCellValue());
                         headers.add(cell.getStringCellValue());
+                        OneExcelColumn col=new OneExcelColumn(cell.getStringCellValue(),coln);                        
+                        onesheet.columns.add(col);
                     }
                     catch(Exception e)
                     {
                         logger.error("Unable to decode cell header. Ex="+e.getMessage(),e);
                     }
+                    coln++;
                 }
             }
             else
             {
-                HashMap<String,Object> newrow=new HashMap<String,Object>();
-                results.add(newrow);                
+                ArrayList<Object> newrow=new ArrayList<Object>();
+                onesheet.data.add(newrow);                
 
+                int coln=0;
+                
                 for (Iterator<Cell> cellIterator = row.cellIterator(); cellIterator.hasNext();)
-                {
+                {                    
                     Cell cell=cellIterator.next();
-                    logger.info("Cell type:"+cell.getCellType());
+                    //logger.info("Cell type:"+cell.getCellType());
+                    if(onesheet.columns.size()>coln)
+                    {
+                        onesheet.columns.get(coln).columnTypes[cell.getCellType()]++;
+                    }
                     switch(cell.getCellType())
                     {                    
                         case HSSFCell.CELL_TYPE_NUMERIC:
                             if (HSSFDateUtil.isCellDateFormatted(cell)) {
-                                logger.info(cell.getCellType()+"="+cell.getDateCellValue());
-                                newrow.put(getCellHeader(headers,cell.getColumnIndex()),cell.getDateCellValue());
+                                //logger.info(cell.getCellType()+"="+cell.getDateCellValue());
+                                newrow.add(cell.getDateCellValue());
                             }
                             else
                             {
-                                logger.info(cell.getCellType()+"="+cell.getNumericCellValue());
-                                newrow.put(getCellHeader(headers,cell.getColumnIndex()),cell.getNumericCellValue());
+                                //logger.info(cell.getCellType()+"="+cell.getNumericCellValue());
+                                newrow.add(cell.getNumericCellValue());
                             }
                             break;
                         default:
-                            logger.info(cell.getCellType()+"="+cell.getStringCellValue());
-                            newrow.put(getCellHeader(headers,cell.getColumnIndex()),cell.getStringCellValue());
+                            //logger.info(cell.getCellType()+"="+cell.getStringCellValue());
+                            newrow.add(cell.getStringCellValue());
                             break;
 
                     }
+                    coln++;
                 }
             }
-        }
-        return results;  
+        }        
+        
+        return onesheet;  
     }
     
     private String getCellHeader(ArrayList<String> headers, int columnIndex)
