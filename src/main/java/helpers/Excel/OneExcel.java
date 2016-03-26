@@ -58,6 +58,10 @@ public class OneExcel
                         {
                             newrow.put(curcol.columnName, cell);
                         }
+                        if(curcol.pKey)
+                        {
+                            newrow.put("elkey", cell);
+                        }
                         if(curcol.link.length()>0)
                         {
                             HashMap<Integer,Integer> tabousheets=new HashMap<Integer,Integer>();

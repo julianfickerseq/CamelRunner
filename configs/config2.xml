@@ -101,7 +101,7 @@
 				</setBody>
 				<log message="Mappings ${body} "/>      
 				<setHeader headerName="CamelHttpMethod">
-				        <constant>POST</constant>
+				    <constant>POST</constant>
 				</setHeader>						
 				<recipientList>
 					<simple>http4://localhost:9200/${headers.IndexName}/</simple>
@@ -119,6 +119,8 @@
 			</setBody>
 			<split>
 				<simple>${body}</simple>
+				<marshal ref="jack"/>	
+				<convertBodyTo type="java.lang.String"/>
 				<setBody>
 					<javaScript>
 						var res=''+request.body;
@@ -127,7 +129,14 @@
 						fresstr;
 					</javaScript>
 				</setBody>
-				<log message="Data ${body} "/>      				
+				<log message="Data ${body} "/>  
+				<setHeader headerName="CamelHttpMethod">
+				    <constant>POST</constant>
+				</setHeader>						
+				<recipientList>
+					<simple>http4://localhost:9200/${headers.IndexName}/${headers.IndexType}</simple>
+				</recipientList>
+				<log message="Data added to index ${headers.IndexName}/${headers.IndexType}"/>          				
 			</split>
 
 		</route>

@@ -7,6 +7,7 @@ package helpers.Excel;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -198,7 +199,9 @@ public class ExcelDataFormat implements DataFormat {
                             break;
                         default:
                             //logger.info(cell.getCellType()+"="+cell.getStringCellValue());
-                            newrow.add(cell.getStringCellValue());
+                            
+                            String cellstr=new String(cell.getStringCellValue().getBytes(),Charset.forName("UTF-8"));
+                            newrow.add(cellstr);
                             if(onesheet.columns.size()>coln)                    
                                 onesheet.columns.get(coln).columnTypes[cell.getCellType()]++;
                     
