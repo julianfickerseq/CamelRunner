@@ -23,7 +23,7 @@
 		<!--================= Read XLS ==================-->
 		<route id="readxlsanddelete">			
 			<from uri="file:/Users/snuids/Desktop/ImportAndDeleteXLS?delete=true"/>
-			<log message="Importing (Delete) XLS"/>      			
+			<log message="(${date:now:HH:mm:ss}) Importing (Delete) XLS"/>      			
 			<unmarshal>
 			    <custom ref="excel" />
 			</unmarshal>
@@ -47,7 +47,7 @@
 		<!--================= Read XLS ==================-->
 		<route id="readxlsandupdate">			
 			<from uri="file:/Users/snuids/Desktop/ImportXLS?delete=true"/>
-			<log message="Importing XLS"/>      			
+			<log message="(${date:now:HH:mm:ss}) Importing XLS"/>      			
 			<unmarshal>
 			    <custom ref="excel" />
 			</unmarshal>
@@ -71,18 +71,34 @@
 		<!--================= Process Data ===================-->
 		<route id="processdata">
 			<from uri="direct:processdata"/>
+			<to uri="bean:jsHelper"/> 			
+			<setBody>
+				<javaScript>
+					var helper = request.headers.get('jsHelper');
+					helper.cache('indata',request.headers.get('xlsdata'));
+					var res='';
+					res;
+				</javaScript>
+			</setBody>
+			<removeHeaders pattern="xlsdata" />
 			<filter>
 				<simple>${headers.CreateIndex}</simple>
 				<setBody>
 					<constant></constant>
 				</setBody>
-				<setHeader headerName="CamelHttpMethod">
-				        <constant>DELETE</constant>
-				</setHeader>						
-				<recipientList>
-					<simple>http4://localhost:9200/${headers.IndexName}/</simple>
-				</recipientList>
-				<log message="Index ${headers.IndexName} Deleted"/>      
+				<doTry>
+					<setHeader headerName="CamelHttpMethod">
+					        <constant>DELETE</constant>
+					</setHeader>						
+					<recipientList>
+						<simple>http4://localhost:9200/${headers.IndexName}/</simple>
+					</recipientList>
+					<log message="Index ${headers.IndexName} Deleted"/>
+					<doCatch>				
+						<exception>java.lang.Exception</exception>            
+						<log message="Unable to drop Index."/>
+					</doCatch>      
+				</doTry>
 				<setBody>
 					<simple>${headers.mappings}</simple>
 				</setBody>			
@@ -108,6 +124,16 @@
 				</recipientList>
 				<log message="Index ${headers.IndexName} Created"/>      
 			</filter>
+			
+			<to uri="bean:jsHelper"/>
+			<setBody>
+				<javaScript>
+					var helper = request.headers.get('jsHelper');
+					var res=helper.cache('indata');
+					request.setHeader('xlsdata',res);
+				</javaScript>
+			</setBody>
+			
 			<to uri="direct:processdata2"/>
 		</route>
 		
@@ -119,24 +145,39 @@
 			</setBody>
 			<split>
 				<simple>${body}</simple>
+				<removeHeaders pattern="xlsdata" />
 				<marshal ref="jack"/>	
-				<convertBodyTo type="java.lang.String"/>
+				<convertBodyTo type="java.lang.String" charset="UTF-8"/>
 				<setBody>
 					<javaScript>
 						var res=''+request.body;
 						var data=JSON.parse(res);
 						var fresstr=JSON.stringify(data);
+						var elkey='';
+						if((data.elkey!=null)
+							&amp;&amp;(data.elkey!=undefined))
+							elkey=data.elkey;
+						request.headers.put('IndexPkey',elkey);
 						fresstr;
 					</javaScript>
 				</setBody>
-				<log message="Data ${body} "/>  
+				<convertBodyTo type="java.lang.String" charset="UTF-8"/>
+				<log message="(${date:now:HH:mm:ss}) Data ${body} "/>
 				<setHeader headerName="CamelHttpMethod">
 				    <constant>POST</constant>
-				</setHeader>						
-				<recipientList>
-					<simple>http4://localhost:9200/${headers.IndexName}/${headers.IndexType}</simple>
-				</recipientList>
-				<log message="Data added to index ${headers.IndexName}/${headers.IndexType}"/>          				
+				</setHeader>
+				<doTry>
+					<log message="Post dest:http4://localhost:9200/${headers.IndexName}/${headers.IndexType}/${headers.IndexPKey}"/>												
+					<recipientList>
+						<simple>http4://localhost:9200/${headers.IndexName}/${headers.IndexType}/${headers.IndexPKey}</simple>
+					</recipientList>
+					<log message="Data added to index ${headers.IndexName}/${headers.IndexType}"/>          				
+					<doCatch>				
+						<exception>java.lang.Exception</exception>            
+						<log message="Unable to add data."/>
+						<to uri="log:COUCOU?showAll=true"/>
+					</doCatch>					
+				</doTry>
 			</split>
 
 		</route>
@@ -145,6 +186,9 @@
 	
 	<bean id="jms" class="org.apache.activemq.camel.component.ActiveMQComponent">
 		<property name="brokerURL" value="tcp://127.0.0.1:61616"/>
+	</bean>
+	
+	<bean id="jsHelper" class="helpers.JSHelper.JSHelper">
 	</bean>
 	
 	<bean id="excel" class="helpers.Excel.ExcelDataFormat">

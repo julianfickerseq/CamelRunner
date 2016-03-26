@@ -12,13 +12,19 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import org.apache.camel.Exchange;
+import org.apache.camel.component.file.GenericFile;
 import org.apache.camel.spi.DataFormat;
 import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.POIXMLDocument;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellValue;
+import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +37,8 @@ import org.slf4j.LoggerFactory;
 public class ExcelDataFormat implements DataFormat {
 
     static final Logger logger = LoggerFactory.getLogger("ExcelDataFormat");    
+
+    
 
     
     
@@ -60,21 +68,72 @@ public class ExcelDataFormat implements DataFormat {
 
     public Object unmarshal(Exchange exchng, InputStream in) throws Exception
     {
+        
+        Object res=exchng.getIn().getBody();
+//        Workbook workbook = Workbook.getWorkbook();
+        logger.info("Object:"+res);
+        GenericFile genfile=(GenericFile)res;
+        
+        if(genfile.getFileNameOnly().endsWith("xlsx"))
+        {
+            return unmarshalXLSX(exchng, in);
+    
+        }
         HSSFWorkbook workbook = new HSSFWorkbook(in);   
+        FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+    
         
         //Get first sheet from the workbook
         HSSFSheet sheet = workbook.getSheetAt(0);
         
         if(importType != ImportType.FORMATTED)
         {
-            return marshalAsArray(sheet);
+            return marshalAsArray(sheet.iterator());
         }
         else
         {
             OneExcel    excel=new OneExcel();
             for(int i=0;i<workbook.getNumberOfSheets();i++)
             {
-                OneExcelSheet onesheet=marshalAsStructure(workbook.getSheetAt(i));
+                OneExcelSheet onesheet=marshalAsStructure(workbook.getSheetAt(i).iterator(),evaluator);
+                logger.info("Loading sheet:"+i);
+                logger.info("Data:"+onesheet.data.size());
+                if(onesheet.data.size()>0)
+                    excel.sheets.add(onesheet);
+            }
+            logger.info("Total sheets:"+excel.sheets.size());
+            
+            
+            ArrayList<HashMap<String,Object>> resu=excel.GenerateResult();
+            HashMap<String,Object> mappings=excel.GenerateMappings();
+            
+            exchng.getOut().setHeader("mappings", mappings);
+            exchng.getOut().setHeader("xlsdata", resu);
+            
+            return resu;
+            
+        }
+    }
+    
+    private Object unmarshalXLSX(Exchange exchng, InputStream in) throws Exception
+    {
+         
+        XSSFWorkbook workbook = new XSSFWorkbook(in);   
+        FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+        
+        //Get first sheet from the workbook
+        XSSFSheet sheet = workbook.getSheetAt(0);
+        
+        if(importType != ImportType.FORMATTED)
+        {
+            return marshalAsArray(sheet.iterator());
+        }
+        else
+        {
+            OneExcel    excel=new OneExcel();
+            for(int i=0;i<workbook.getNumberOfSheets();i++)
+            {
+                OneExcelSheet onesheet=marshalAsStructure(workbook.getSheetAt(i).iterator(),evaluator);
                 logger.info("Loading sheet:"+i);
                 logger.info("Data:"+onesheet.data.size());
                 if(onesheet.data.size()>0)
@@ -94,11 +153,12 @@ public class ExcelDataFormat implements DataFormat {
         }
     }
 
-    public Object marshalAsArray(HSSFSheet sheet)
+    public Object marshalAsArray(Iterator<Row> sheet)
     {
+        
         ArrayList<ArrayList<Object>> results=new ArrayList<ArrayList<Object>>();
         
-        for (Iterator<Row> rowIterator = sheet.iterator(); rowIterator.hasNext();)
+        for (Iterator<Row> rowIterator = sheet; rowIterator.hasNext();)
         {
             ArrayList newrow=new ArrayList();
             results.add(newrow);
@@ -133,14 +193,17 @@ public class ExcelDataFormat implements DataFormat {
         return results;  
     }
     
-    public OneExcelSheet marshalAsStructure(HSSFSheet sheet)
+    public OneExcelSheet marshalAsStructure(Iterator<Row> sheet,FormulaEvaluator evaluator)
     {
+        logger.info("Evaluating formulas.");
+        evaluator.evaluateAll();
+        logger.info("Done...");
         OneExcelSheet onesheet=new OneExcelSheet();
         
         ArrayList<String> headers=null;
         
         
-        for (Iterator<Row> rowIterator = sheet.iterator(); rowIterator.hasNext();)
+        for (Iterator<Row> rowIterator = sheet; rowIterator.hasNext();)
         {
             Row row=rowIterator.next();
         
@@ -180,7 +243,8 @@ public class ExcelDataFormat implements DataFormat {
                     //Cell cell=cellIterator.next();
                     //logger.info("Cell type:"+cell.getCellType());
                     
-                    switch(cell.getCellType())
+                    
+                    switch(evaluator.evaluateInCell(cell).getCellType())
                     {                    
                         case HSSFCell.CELL_TYPE_NUMERIC:
                             if (HSSFDateUtil.isCellDateFormatted(cell)) {
@@ -196,6 +260,15 @@ public class ExcelDataFormat implements DataFormat {
                                 if(onesheet.columns.size()>coln)                    
                                     onesheet.columns.get(coln).columnTypes[cell.getCellType()]++;
                             }
+                            break;
+                        case HSSFCell.CELL_TYPE_FORMULA:                            
+                            
+                            int value=evaluator.evaluateFormulaCell(cell);
+                            value=cell.getCachedFormulaResultType();
+                            
+                            newrow.add(value);
+                            if(onesheet.columns.size()>coln)                    
+                                onesheet.columns.get(coln).columnTypes[0]++;
                             break;
                         default:
                             //logger.info(cell.getCellType()+"="+cell.getStringCellValue());
