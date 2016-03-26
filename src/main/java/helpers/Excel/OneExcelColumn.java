@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package helpers;
+package helpers.Excel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,6 +41,21 @@ public class OneExcelColumn
         }
     }
 
+    public int getColumnType()
+    {
+        int maxval=columnTypes[0];
+        int typ=0;
+        for(int i=1;i<columnTypes.length;i++)
+        {
+            if(columnTypes[i]>maxval)
+            {
+                maxval=columnTypes[i];
+                typ=i;
+            }
+        }
+        return typ;
+    }
+    
     void printDetails()
     {
         StringBuilder res=new StringBuilder();

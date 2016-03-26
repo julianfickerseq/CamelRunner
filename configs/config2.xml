@@ -19,23 +19,126 @@
 		<dataFormats>
 			<json id="jack" library="Jackson"/>
 		</dataFormats>
-		<route id="readxls">
-	    <from uri="file:/Users/snuids/Desktop/Test?delete=true"/>
-			<to uri="log:toto3333"/>
+
+		<!--================= Read XLS ==================-->
+		<route id="readxlsanddelete">			
+			<from uri="file:/Users/snuids/Desktop/ImportAndDeleteXLS?delete=true"/>
+			<log message="Importing (Delete) XLS"/>      			
 			<unmarshal>
 			    <custom ref="excel" />
 			</unmarshal>
-			<marshal ref="jack"/>	
- 			<to uri="log:toto4444"/>
-			<to uri="jms:queue:bbbb"/>
+			<setHeader headerName="CreateIndex">
+				<simple>true</simple>
+			</setHeader>
+			<setHeader headerName="IndexType">
+				<simple>fromxls</simple>
+			</setHeader>
+			<setHeader headerName="IndexName">
+				<javaScript>
+					var filename=''+request.headers.get('CamelFileNameOnly');
+					var cols=filename.toLowerCase().replace(' ','').split('\.');
+					filename=cols[0];
+					filename;
+				</javaScript>
+			</setHeader>
+			<to uri="direct:processdata"/>					
 		</route>
+		
+		<!--================= Read XLS ==================-->
+		<route id="readxlsandupdate">			
+			<from uri="file:/Users/snuids/Desktop/ImportXLS?delete=true"/>
+			<log message="Importing XLS"/>      			
+			<unmarshal>
+			    <custom ref="excel" />
+			</unmarshal>
+			<setHeader headerName="CreateIndex">
+				<simple>false</simple>
+			</setHeader>
+			<setHeader headerName="IndexType">
+				<simple>fromxls</simple>
+			</setHeader>
+			<setHeader headerName="IndexName">
+				<javaScript>
+					var filename=''+request.headers.get('CamelFileNameOnly');
+					var cols=filename.toLowerCase().replace(' ','').split('\.');
+					filename=cols[0];
+					filename;
+				</javaScript>
+			</setHeader>
+			<to uri="direct:processdata"/>					
+		</route>
+		
+		<!--================= Process Data ===================-->
+		<route id="processdata">
+			<from uri="direct:processdata"/>
+			<filter>
+				<simple>${headers.CreateIndex}</simple>
+				<setBody>
+					<constant></constant>
+				</setBody>
+				<setHeader headerName="CamelHttpMethod">
+				        <constant>DELETE</constant>
+				</setHeader>						
+				<recipientList>
+					<simple>http4://localhost:9200/${headers.IndexName}/</simple>
+				</recipientList>
+				<log message="Index ${headers.IndexName} Deleted"/>      
+				<setBody>
+					<simple>${headers.mappings}</simple>
+				</setBody>			
+				<marshal ref="jack"/>	
+				<convertBodyTo type="java.lang.String"/>
+				<setBody>
+					<javaScript>
+						var res=''+request.body;
+						var maps=JSON.parse(res);
+						var fres={"settings" : {"number_of_shards" : 5}};
+						fres.mappings={};
+						fres.mappings[headers.get('IndexType')]={"properties":maps}
+						var fresstr=JSON.stringify(fres);
+						fresstr;
+					</javaScript>
+				</setBody>
+				<log message="Mappings ${body} "/>      
+				<setHeader headerName="CamelHttpMethod">
+				        <constant>POST</constant>
+				</setHeader>						
+				<recipientList>
+					<simple>http4://localhost:9200/${headers.IndexName}/</simple>
+				</recipientList>
+				<log message="Index ${headers.IndexName} Created"/>      
+			</filter>
+			<to uri="direct:processdata2"/>
+		</route>
+		
+		<!--================= Process Data 2 ===================-->
+		<route id="processdata2">
+			<from uri="direct:processdata2"/>
+			<setBody>
+				<simple>${headers.xlsdata}</simple>
+			</setBody>
+			<split>
+				<simple>${body}</simple>
+				<setBody>
+					<javaScript>
+						var res=''+request.body;
+						var data=JSON.parse(res);
+						var fresstr=JSON.stringify(data);
+						fresstr;
+					</javaScript>
+				</setBody>
+				<log message="Data ${body} "/>      				
+			</split>
+
+		</route>
+			
 	</camelContext>
 	
 	<bean id="jms" class="org.apache.activemq.camel.component.ActiveMQComponent">
 		<property name="brokerURL" value="tcp://127.0.0.1:61616"/>
 	</bean>
 	
-	<bean id="excel" class="helpers.ExcelDataFormat">
+	<bean id="excel" class="helpers.Excel.ExcelDataFormat">
 		<property name="importType" value="FORMATTED"/>
 	</bean>
 	

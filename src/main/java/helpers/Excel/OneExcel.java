@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package helpers;
+package helpers.Excel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -69,6 +69,8 @@ public class OneExcel
                 } 
                 results.add(newrow);
             }
+            
+            
         }
         return results;
     }
@@ -116,5 +118,45 @@ public class OneExcel
             
             sheetind++;
         }      
+    }
+
+    public HashMap<String, Object> GenerateMappings()
+    {
+        HashMap<String, Object> maps=new HashMap<String, Object>();
+        
+        
+        for(OneExcelSheet she:sheets)
+        {
+            for(OneExcelColumn col:she.columns)
+            {
+                if(!maps.containsKey(col.columnName))
+                {
+                    logger.info("Col:"+col.columnName+" Mapping:"+col.getColumnType());
+                    
+                    
+                    switch(col.getColumnType())
+                    {
+                        case 0:
+                            HashMap<String, Object> newmap0=new HashMap<String, Object>();
+                            newmap0.put("type", "long");
+                            maps.put(col.columnName, newmap0);
+                            break;
+                        case 1:
+                            HashMap<String, Object> newmap1=new HashMap<String, Object>();
+                            newmap1.put("type", "string");
+                            newmap1.put("index", "not_analyzed");                            
+                            maps.put(col.columnName, newmap1);                            
+                            break;
+                        case 9:
+                            HashMap<String, Object> newmap9=new HashMap<String, Object>();
+                            newmap9.put("type", "date");
+                            newmap9.put("format","strict_date_optional_time||epoch_millis");
+                            maps.put(col.columnName, newmap9);                            
+                            break;
+                    }
+                }
+            }
+        }
+        return maps;
     }
 }

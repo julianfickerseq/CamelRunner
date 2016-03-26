@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package helpers;
+package helpers.Excel;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -81,7 +81,14 @@ public class ExcelDataFormat implements DataFormat {
             }
             logger.info("Total sheets:"+excel.sheets.size());
             
-            return excel.GenerateResult();
+            
+            ArrayList<HashMap<String,Object>> resu=excel.GenerateResult();
+            HashMap<String,Object> mappings=excel.GenerateMappings();
+            
+            exchng.getOut().setHeader("mappings", mappings);
+            exchng.getOut().setHeader("xlsdata", resu);
+            
+            return resu;
             
         }
     }
@@ -146,8 +153,9 @@ public class ExcelDataFormat implements DataFormat {
                     {                        
                         Cell cell=cellIterator.next();
                         logger.info("Header:"+cell.getStringCellValue());
-                        headers.add(cell.getStringCellValue());
-                        OneExcelColumn col=new OneExcelColumn(cell.getStringCellValue(),coln);                        
+                        String headn=cell.getStringCellValue().replace(" ","");
+                        headers.add(headn);
+                        OneExcelColumn col=new OneExcelColumn(headn,coln);                        
                         onesheet.columns.add(col);
                     }
                     catch(Exception e)
@@ -170,26 +178,30 @@ public class ExcelDataFormat implements DataFormat {
                     Cell cell = row.getCell(cn, Row.CREATE_NULL_AS_BLANK);
                     //Cell cell=cellIterator.next();
                     //logger.info("Cell type:"+cell.getCellType());
-                    if(onesheet.columns.size()>coln)
-                    {
-                        onesheet.columns.get(coln).columnTypes[cell.getCellType()]++;
-                    }
+                    
                     switch(cell.getCellType())
                     {                    
                         case HSSFCell.CELL_TYPE_NUMERIC:
                             if (HSSFDateUtil.isCellDateFormatted(cell)) {
                                 //logger.info(cell.getCellType()+"="+cell.getDateCellValue());
                                 newrow.add(cell.getDateCellValue());
+                                if(onesheet.columns.size()>coln)                    
+                                    onesheet.columns.get(coln).columnTypes[9]++;
                             }
                             else
                             {
                                 //logger.info(cell.getCellType()+"="+cell.getNumericCellValue());
                                 newrow.add(cell.getNumericCellValue());
+                                if(onesheet.columns.size()>coln)                    
+                                    onesheet.columns.get(coln).columnTypes[cell.getCellType()]++;
                             }
                             break;
                         default:
                             //logger.info(cell.getCellType()+"="+cell.getStringCellValue());
                             newrow.add(cell.getStringCellValue());
+                            if(onesheet.columns.size()>coln)                    
+                                onesheet.columns.get(coln).columnTypes[cell.getCellType()]++;
+                    
                             break;
 
                     }
