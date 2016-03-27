@@ -24,7 +24,7 @@
 
 		<!--================= Read SQL ==================-->
 		<route id="importanddeletesql">
-			<from uri="jms:topic:IMPORT_AND_DELETE_SQL"/>
+			<from uri="jms:topic:IMPORT_SQL"/>
 			<log message="Import SQL to index ${headers.IndexName} Recreate:${headers.CreateIndex} SQL:${body}"/>
 			<setHeader headerName="Notification">
 				<simple>Job Added (SQL)</simple>
@@ -126,7 +126,7 @@
 			</setBody>
 			
 			<setBody>
-				<simple>Job Added for Index:${headers.IndexName} Type:${headers.IndexType} Start Time:${date:now:HH:mm:ss} Data Size:${headers.xlsdata.size}</simple>
+				<simple>Job Added for Index:${headers.IndexName} Type:${headers.IndexType} Time:${date:now:HH:mm:ss} Data Size:${headers.xlsdata.size}</simple>
 			</setBody>
 			<to uri="jms:topic:JOB_NOTIFICATION"/>
 			
@@ -186,10 +186,98 @@
 			
 			<to uri="direct:processdata2"/>
 		</route>
-		
+
 		<!--================= Process Data 2 ===================-->
 		<route id="processdata2">
 			<from uri="direct:processdata2"/>
+			<log message="=========  Processing Data"/>
+			<setBody>
+				<simple>${headers.xlsdata}</simple>
+			</setBody>
+			<removeHeaders pattern="xlsdata" />
+			<marshal ref="jack"/>	
+			<convertBodyTo type="java.lang.String" charset="UTF-8"/>
+			<setBody>
+				<javaScript>
+					var rows=''+request.body;
+					rows=JSON.parse(rows);
+					var results=new java.util.ArrayList();
+					var i;
+					var cursize=0;
+					var curmes='';
+					for(i=0;i &lt; rows.length;i++)
+					{
+						var row=rows[i];
+						var mes=''+JSON.stringify(row);
+						
+						var res="{ \"index\" : { \"_index\" : \""+request.headers.get('IndexName')
+								+"\", \"_type\" : \""+request.headers.get('IndexType');
+						if(row.elkey!=null &amp;&amp; row.elkey!='' &amp;&amp; row.elkey!='null')
+							res=res+"\", \"_id\" : \""+row.elkey+"\" } }";
+						else
+							res=res+"\"}}"
+						res=res+"\n"+mes+"\n";
+						
+						curmes=curmes+res;
+						cursize++;
+						if(cursize>99)
+						{
+							results.add(curmes);
+							curmes='';
+							cursize=0;
+						}
+					}
+					results.add(curmes);
+					results;
+				</javaScript>
+			</setBody>
+			<split>
+				<simple>${body}</simple>
+				<log message="=========  Bulk Ready "/>
+				<to uri="direct:aggregate2"/>
+			</split>
+			<setBody>
+				<simple>Job Finished for Index:${headers.IndexName} Type:${headers.IndexType} Time:${date:now:HH:mm:ss} Data Size:${headers.xlsdata.size}</simple>
+			</setBody>
+			<to uri="jms:topic:JOB_NOTIFICATION"/>
+			<log message="Batch finished..."/>
+		</route>
+		
+		
+		
+		<!--================= Aggregate 2 ==================-->
+		<route>
+			<from uri="direct:aggregate2"/>
+			<setHeader headerName="CamelHttpMethod">
+			    <constant>POST</constant>
+			</setHeader>
+			<doTry>
+				<log message="Time:${date:now:HH:mm:ss} Post dest:http4://localhost:9200/_bulk"/>												
+				<recipientList>
+					<simple>http4://localhost:9200/_bulk</simple>
+				</recipientList>
+				<log message="Time:${date:now:HH:mm:ss} Bulk insert done."/>          				
+				<doCatch>				
+					<exception>java.lang.Exception</exception>            
+					<log message="Unable to add data."/>
+					<to uri="log:COUCOU?showAll=true"/>
+				</doCatch>					
+			</doTry>
+		</route>
+		
+		<!--================= Notification ==================-->
+		<route id="startnotification">
+			<from uri="jms:topic:STARTNOTIFICATION"/>
+			<setBody>
+				<simple>${headers.Notification}</simple>
+			</setBody>
+			<to uri="jms:topic:JOB_NOTIFICATION"/>
+		</route>
+		
+		
+		<!--================= Process Data 2 ===================-->
+		<!--route id="processdata2a">
+			<from uri="jms:queue:processdata2"/>
 			<setBody>
 				<simple>${headers.xlsdata}</simple>
 			</setBody>
@@ -212,7 +300,8 @@
 					</javaScript>
 				</setBody>
 				<convertBodyTo type="java.lang.String" charset="UTF-8"/>
-				<log message="(${date:now:HH:mm:ss}) Data ${body} "/>
+				<log message="To aggregator"/>
+				<to uri="direct:aggregatejob"/>
 				<setHeader headerName="CamelHttpMethod">
 				    <constant>POST</constant>
 				</setHeader>
@@ -230,19 +319,42 @@
 				</doTry>
 			</split>
 			<setBody>
-				<simple>Job Finished for Index:${headers.IndexName} Type:${headers.IndexType} Start Time:${date:now:HH:mm:ss} Data Size:${headers.xlsdata.size}</simple>
+				<simple>Job Finished for Index:${headers.IndexName} Type:${headers.IndexType} Time:${date:now:HH:mm:ss} Data Size:${headers.xlsdata.size}</simple>
 			</setBody>
 			<to uri="jms:topic:JOB_NOTIFICATION"/>
-		</route>
-		
-		<!--================= Notification ==================-->
-		<route id="startnotification">
-			<from uri="jms:topic:STARTNOTIFICATION"/>
+			<log message="Batch finished..."/>
+		</route-->
+
+		<!--================= Aggregate 1 ==================-->
+		<!--route id="aggregatejob">		
+			<from uri="direct:aggregatejob"/>
 			<setBody>
-				<simple>${headers.Notification}</simple>
+				<javaScript>
+					var mes=''+request.body;
+					var res="{ \"index\" : { \"_index\" : \""+request.headers.get('IndexName')
+							+"\", \"_type\" : \""+request.headers.get('IndexType');
+					if(request.headers.get('IndexPKey')!=null &amp;&amp; request.headers.get('IndexPKey')!='')
+						res=res+"\", \"_id\" : \""+request.headers.get('IndexPKey')+"\" } }";
+					else
+						res=res+"\"}}"
+					res=res+"\n"+mes+"\n";
+				</javaScript>
 			</setBody>
-			<to uri="jms:topic:JOB_NOTIFICATION"/>
-		</route>
+			
+			
+			<aggregate strategyRef="aggregatorStrategy" completionTimeout="2000">
+	            <correlationExpression>
+	                <header>IndexName</header>
+	            </correlationExpression>
+	            <completionSize>
+	                <constant>200</constant>
+	            </completionSize>
+				<log message="Bulk done."/>
+				<to uri="jms:queue:JOB_BATCH"/>
+				<to uri="direct:aggregate2"/>
+			</aggregate>			
+		</route-->
+		
 	</camelContext>
 	
 	<!--================= JMS ===================-->			
@@ -280,6 +392,9 @@
 	        <property name="poolPreparedStatements" value="true" />
 	        <property name="maxOpenPreparedStatements" value="100" />
 	</bean>
+
+	<!--================= Aggregators ===================-->	
+	<bean id="aggregatorStrategy" class="helpers.Aggregators.BodyAsStringAggregator"/>
 	
 	<!--================= Jolokia ===================-->
 	<jolokia:agent lookupConfig="false" systemPropertiesMode="never">
