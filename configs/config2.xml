@@ -236,7 +236,7 @@
 		</route>
 		
 		<!--================= Notification ==================-->
-		<route id="importanddeletesql">
+		<route id="startnotification">
 			<from uri="jms:topic:STARTNOTIFICATION"/>
 			<setBody>
 				<simple>${headers.Notification}</simple>
