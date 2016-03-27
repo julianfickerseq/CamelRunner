@@ -20,10 +20,49 @@
 			<json id="jack" library="Jackson"/>
 		</dataFormats>
 
+		
+
+		<!--================= Read SQL ==================-->
+		<route id="importanddeletesql">
+			<from uri="jms:topic:IMPORT_AND_DELETE_SQL"/>
+			<log message="Import SQL to index ${headers.IndexName} Recreate:${headers.CreateIndex} SQL:${body}"/>
+			<setHeader headerName="Notification">
+				<simple>Job Added (SQL)</simple>
+			</setHeader>
+			<to uri="jms:topic:STARTNOTIFICATION"/>       			
+			
+			<to uri="jdbc:DataSourcePGAdmin"/>
+			<to uri="bean:sqlmappingextractor"/>			
+			
+			<setHeader headerName="IndexType">
+				<simple>fromsql</simple>
+			</setHeader>		
+			<setHeader headerName="IndexName">
+				<javaScript>
+					var indexname=''+request.headers.get('IndexName');
+					
+					if(indexname==null || indexname =='null' || indexname.length==0)
+						indexname='dummy';
+					else
+						indexname=indexname.toLowerCase()
+						
+					indexname;
+				</javaScript>
+			</setHeader>
+			
+			<to uri="direct:processdata"/>
+		</route>
+		
+
 		<!--================= Read XLS ==================-->
 		<route id="readxlsanddelete">			
 			<from uri="file:/Users/snuids/Desktop/ImportAndDeleteXLS?delete=true"/>
-			<log message="(${date:now:HH:mm:ss}) Importing (Delete) XLS"/>      			
+			<log message="(${date:now:HH:mm:ss}) Importing (Delete) XLS"/>
+			<setHeader headerName="Notification">
+				<simple>Job Added (Read XLS And Delete)</simple>
+			</setHeader>
+			<to uri="jms:topic:STARTNOTIFICATION"/>      			
+			
 			<unmarshal>
 			    <custom ref="excel" />
 			</unmarshal>
@@ -36,7 +75,7 @@
 			<setHeader headerName="IndexName">
 				<javaScript>
 					var filename=''+request.headers.get('CamelFileNameOnly');
-					var cols=filename.toLowerCase().replace(' ','').split('\.');
+					var cols=filename.toLowerCase().replace(/ /g,'').split('\.');
 					filename=cols[0];
 					filename;
 				</javaScript>
@@ -44,10 +83,15 @@
 			<to uri="direct:processdata"/>					
 		</route>
 		
-		<!--================= Read XLS ==================-->
+		<!--================= Read XLS (Update) ==================-->
 		<route id="readxlsandupdate">			
 			<from uri="file:/Users/snuids/Desktop/ImportXLS?delete=true"/>
-			<log message="(${date:now:HH:mm:ss}) Importing XLS"/>      			
+			<log message="(${date:now:HH:mm:ss}) Importing XLS"/>  
+			<setHeader headerName="Notification">
+				<simple>Job Added (Read XLS)</simple>
+			</setHeader>
+			<to uri="jms:topic:STARTNOTIFICATION"/>       			
+			
 			<unmarshal>
 			    <custom ref="excel" />
 			</unmarshal>
@@ -75,11 +119,17 @@
 			<setBody>
 				<javaScript>
 					var helper = request.headers.get('jsHelper');
-					helper.cache('indata',request.headers.get('xlsdata'));
+					helper.cache(request.headers.get('IndexName'),request.headers.get('xlsdata'));
 					var res='';
 					res;
 				</javaScript>
 			</setBody>
+			
+			<setBody>
+				<simple>Job Added for Index:${headers.IndexName} Type:${headers.IndexType} Start Time:${date:now:HH:mm:ss} Data Size:${headers.xlsdata.size}</simple>
+			</setBody>
+			<to uri="jms:topic:JOB_NOTIFICATION"/>
+			
 			<removeHeaders pattern="xlsdata" />
 			<filter>
 				<simple>${headers.CreateIndex}</simple>
@@ -129,7 +179,7 @@
 			<setBody>
 				<javaScript>
 					var helper = request.headers.get('jsHelper');
-					var res=helper.cache('indata');
+					var res=helper.cache(request.headers.get('IndexName'));
 					request.setHeader('xlsdata',res);
 				</javaScript>
 			</setBody>
@@ -179,22 +229,59 @@
 					</doCatch>					
 				</doTry>
 			</split>
-
+			<setBody>
+				<simple>Job Finished for Index:${headers.IndexName} Type:${headers.IndexType} Start Time:${date:now:HH:mm:ss} Data Size:${headers.xlsdata.size}</simple>
+			</setBody>
+			<to uri="jms:topic:JOB_NOTIFICATION"/>
 		</route>
-			
+		
+		<!--================= Notification ==================-->
+		<route id="importanddeletesql">
+			<from uri="jms:topic:STARTNOTIFICATION"/>
+			<setBody>
+				<simple>${headers.Notification}</simple>
+			</setBody>
+			<to uri="jms:topic:JOB_NOTIFICATION"/>
+		</route>
 	</camelContext>
 	
+	<!--================= JMS ===================-->			
 	<bean id="jms" class="org.apache.activemq.camel.component.ActiveMQComponent">
 		<property name="brokerURL" value="tcp://127.0.0.1:61616"/>
 	</bean>
 	
+	<!--================= HSHelper ===================-->
 	<bean id="jsHelper" class="helpers.JSHelper.JSHelper">
 	</bean>
 	
+	<!--================= Excel ===================-->
 	<bean id="excel" class="helpers.Excel.ExcelDataFormat">
 		<property name="importType" value="FORMATTED"/>
 	</bean>
 	
+	<!--================= SQL ===================-->
+	<bean id="sqlmappingextractor" class="helpers.SQL.SQLMappingExtractor">
+	</bean>
+	
+	<!--================= Datasource ===================-->
+	<bean id="DataSourcePGAdmin" class="org.apache.commons.dbcp.BasicDataSource"
+	          destroy-method="close">
+	        <property name="driverClassName" value="org.postgresql.Driver" />
+	        <property name="url" value="jdbc:postgresql://127.0.0.1:5432/fascan" />
+	        <property name="username" value="fascan" />
+	        <property name="password" value="fascan" />
+	        <property name="timeBetweenEvictionRunsMillis" value="300000" />
+	        <property name="numTestsPerEvictionRun" value="6" />
+	        <property name="minEvictableIdleTimeMillis" value="1800000" />
+	        <property name="initialSize" value="3" />
+	        <property name="maxActive" value="10" />
+	        <property name="maxIdle" value="10" />
+	        <property name="maxWait" value="5000" />
+	        <property name="poolPreparedStatements" value="true" />
+	        <property name="maxOpenPreparedStatements" value="100" />
+	</bean>
+	
+	<!--================= Jolokia ===================-->
 	<jolokia:agent lookupConfig="false" systemPropertiesMode="never">
 	    <jolokia:config
 	            autoStart="true"

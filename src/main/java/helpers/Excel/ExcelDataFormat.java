@@ -38,10 +38,6 @@ public class ExcelDataFormat implements DataFormat {
 
     static final Logger logger = LoggerFactory.getLogger("ExcelDataFormat");    
 
-    
-
-    
-    
     public enum ImportType 
     {
         ARRAY,FORMATTED 
@@ -67,11 +63,9 @@ public class ExcelDataFormat implements DataFormat {
     }
 
     public Object unmarshal(Exchange exchng, InputStream in) throws Exception
-    {
-        
+    {        
+        logger.info("Unmarshalling XLS");
         Object res=exchng.getIn().getBody();
-//        Workbook workbook = Workbook.getWorkbook();
-        logger.info("Object:"+res);
         GenericFile genfile=(GenericFile)res;
         
         if(genfile.getFileNameOnly().endsWith("xlsx"))
