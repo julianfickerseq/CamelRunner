@@ -126,7 +126,7 @@
 			</setBody>
 			
 			<setBody>
-				<simple>Job Added for Index:${headers.IndexName} Type:${headers.IndexType} Time:${date:now:HH:mm:ss} Data Size:${headers.xlsdata.size}</simple>
+				<simple>Job Added for Index:${headers.IndexName} Type:${headers.IndexType} Data Size:${headers.xlsdata.size}</simple>
 			</setBody>
 			<to uri="jms:topic:JOB_NOTIFICATION"/>
 			
@@ -237,7 +237,7 @@
 				<to uri="direct:aggregate2"/>
 			</split>
 			<setBody>
-				<simple>Job Finished for Index:${headers.IndexName} Type:${headers.IndexType} Time:${date:now:HH:mm:ss} Data Size:${headers.xlsdata.size}</simple>
+				<simple>Job Finished for Index:${headers.IndexName} Type:${headers.IndexType}</simple>
 			</setBody>
 			<to uri="jms:topic:JOB_NOTIFICATION"/>
 			<log message="Batch finished..."/>
