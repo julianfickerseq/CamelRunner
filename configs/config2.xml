@@ -24,7 +24,7 @@
 
 		<!--================= Read SQL ==================-->
 		<route id="importanddeletesql">
-			<from uri="jms:topic:IMPORT_SQL"/>
+			<from uri="jms:topic:IMPORT_SQL?clientId=ImportSQL"/>
 			<log message="Import SQL to index ${headers.IndexName} Recreate:${headers.CreateIndex} SQL:${body}"/>
 			<setHeader headerName="Notification">
 				<simple>Job Added (SQL)</simple>
@@ -267,7 +267,7 @@
 		
 		<!--================= Notification ==================-->
 		<route id="startnotification">
-			<from uri="jms:topic:STARTNOTIFICATION"/>
+			<from uri="jms:topic:STARTNOTIFICATION?clientId=NotificationListener"/>
 			<setBody>
 				<simple>${headers.Notification}</simple>
 			</setBody>
