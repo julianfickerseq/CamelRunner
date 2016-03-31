@@ -21,6 +21,29 @@
 		</dataFormats>
 
 		
+		<route id="ReadStocks">
+		            <from uri="timer://camelstatus?fixedRate=true&amp;period=5000"/>
+					<setHeader headerName="CamelHttpMethod">
+					    <constant>GET</constant>
+					</setHeader>	
+					<to uri="http4://finance.yahoo.com/webservice/v1/symbols/AAPL/quote?format=json&amp;view=detail"/>
+
+					<convertBodyTo type="java.lang.String"/>
+					<setBody>
+						<javaScript>
+							var res=JSON.parse(request.body);
+							res.priceasfloat=parseFloat(res.list.resources[0].resource.fields.price);
+							JSON.stringify(res);
+						</javaScript>
+					</setBody>
+					<to uri="log:COUCOUCOU"/>	
+					<setHeader headerName="CamelHttpMethod">
+					    <constant>POST</constant>
+					</setHeader>						
+					<recipientList>
+						<simple>http4://localhost:9200/stocks/stock</simple>
+					</recipientList>				
+		</route>
 
 		<!--================= Read SQL ==================-->
 		<route id="importanddeletesql">
