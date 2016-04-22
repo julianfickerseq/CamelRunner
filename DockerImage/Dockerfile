@@ -21,10 +21,20 @@ WORKDIR ./CamelRunner-master
 RUN update-ca-certificates -f
 
 RUN mvn install
-RUN ls -l
-RUN cat pom.xml
-RUN ls -l
 RUN cp ./other/log4j.properties ./target/log4j.properties
 
+RUN mkdir ./ImportXLS
+RUN mkdir ./ImportXLSAndDelete
+
+
 WORKDIR ./target
-RUN java -Dlog4j.configuration=file:./log4j.properties -jar CamelRunner.jar ../configs/config2.xml
+
+VOLUME ["/CamelRunner-master/configs"]
+VOLUME ["/CamelRunner-master/ImportXLSAndDelete"]
+VOLUME ["/CamelRunner-master/ImportXLS"]
+
+EXPOSE 8778
+
+ENV CONFIGFILE ../configs/config2.xml
+
+ENTRYPOINT java -Dlog4j.configuration=file:./log4j.properties -jar CamelRunner.jar $CONFIGFILE
