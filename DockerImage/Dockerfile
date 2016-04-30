@@ -35,6 +35,22 @@ VOLUME ["/CamelRunner-master/ImportXLS"]
 
 EXPOSE 8778
 
-ENV CONFIGFILE ../configs/config2.xml
+#ENV CONFIGFILE ../configs/config.xml
 
-ENTRYPOINT java -Dlog4j.configuration=file:./log4j.properties -jar CamelRunner.jar $CONFIGFILE
+RUN echo 'Writing file'
+
+RUN echo '#!/bin/bash\r\n'
+RUN echo 'while\r\n' > start.sh
+RUN echo 'do\r\n' > start.sh
+RUN echo '  java -Dlog4j.configuration=file:./log4j.properties -jar CamelRunner.jar ../configs/config.xml\r\n' >  start.sh
+RUN echo '  while\r\n' > start.sh
+RUN echo '  sleep 1000\r\n' > start.sh
+RUN echo 'done\r\n' > start.sh
+
+RUN cat start.sh
+RUN chmod ugo+x ./start.sh
+
+
+#ENTRYPOINT java -Dlog4j.configuration=file:./log4j.properties -jar CamelRunner.jar $CONFIGFILE
+ENTRYPOINT ./start.sh
+
