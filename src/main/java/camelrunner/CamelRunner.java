@@ -2,6 +2,9 @@ package camelrunner;
 
 import java.io.File;
 import java.nio.charset.Charset;
+import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -12,11 +15,13 @@ import org.springframework.context.support.FileSystemXmlApplicationContext;
  * @author A.Marchand
  */
 
-public class CamelRunner {
+public class CamelRunner extends TimerTask{
 
-    static final String version = "1.0.0";
+    static final String version = "1.1.0";
     static final Logger logger = LoggerFactory.getLogger("CamelRunner");
     static ApplicationContext context;        
+    private File configFile;
+    private long lastFileUpdateTime;        
     
     public static void main(String[] args) throws Exception {
                       
@@ -58,8 +63,29 @@ public class CamelRunner {
             return;
         }
         
-        logger.info("Main finished");        
+        logger.info("Main finished");   
+        
+        Timer timer = new Timer();
+        // repeat the check every second
+        timer.schedule( new CamelRunner(configFile), new Date(), 1000 );
 
+    }
+
+    public CamelRunner(File configFile)
+    {
+        this.configFile=configFile;
+        lastFileUpdateTime=configFile.lastModified();
+    }
+    
+    @Override
+    public void run()
+    {
+        logger.info("Checking File.");
+        if(configFile.lastModified()!=lastFileUpdateTime)
+        {
+            logger.info("File changed. Exiting.");
+            System.exit(0);
+        }
     }
     
 }

@@ -14,6 +14,8 @@
 	http://www.jolokia.org/jolokia-spring/schema/config/jolokia-config.xsd">
 	<!-- the camel context -->
 	
+	
+	
 	<camelContext xmlns="http://camel.apache.org/schema/spring" id="camel" autoStartup="true">
 		<jmxAgent id="agent" createConnector="true" registryPort="1399"/>
 		<dataFormats>
