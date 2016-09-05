@@ -37,17 +37,9 @@ EXPOSE 8778
 
 #ENV CONFIGFILE ../configs/config.xml
 
-RUN echo 'Writing file'
+RUN ls -l ../
 
-RUN echo '#!/bin/bash\r\n'
-RUN echo 'while\r\n' > start.sh
-RUN echo 'do\r\n' > start.sh
-RUN echo '  java -Dlog4j.configuration=file:./log4j.properties -jar CamelRunner.jar ../configs/config.xml\r\n' >  start.sh
-RUN echo '  while\r\n' > start.sh
-RUN echo '  sleep 1000\r\n' > start.sh
-RUN echo 'done\r\n' > start.sh
-
-RUN cat start.sh
+RUN cp ../Shells/start.sh ./start.sh
 RUN chmod ugo+x ./start.sh
 
 

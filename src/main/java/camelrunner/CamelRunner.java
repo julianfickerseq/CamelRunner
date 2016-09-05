@@ -17,7 +17,7 @@ import org.springframework.context.support.FileSystemXmlApplicationContext;
 
 public class CamelRunner extends TimerTask{
 
-    static final String version = "1.0.0";
+    static final String version = "1.2.0";
     static final Logger logger = LoggerFactory.getLogger("CamelRunner");
     static ApplicationContext context;        
     private File configFile;
