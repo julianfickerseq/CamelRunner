@@ -15,7 +15,7 @@ import org.springframework.context.support.FileSystemXmlApplicationContext;
  * @author A.Marchand
  */
 
-public class CamelRunner extends TimerTask{
+public  class CamelRunner extends TimerTask{
 
     static final String version = "1.2.0";
     static final Logger logger = LoggerFactory.getLogger("CamelRunner");
@@ -80,7 +80,7 @@ public class CamelRunner extends TimerTask{
     @Override
     public void run()
     {
-        logger.info("Checking File.");
+        //logger.info("Checking File.");
         if(configFile.lastModified()!=lastFileUpdateTime)
         {
             logger.info("File chanded. Exiting.");
