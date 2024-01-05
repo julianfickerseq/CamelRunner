@@ -253,7 +253,7 @@
         <dependency>
             <groupId>org.apache.camel</groupId>
             <artifactId>camel-aws</artifactId>
-            <version>${camel-version}</version>
+            <version>${camel.version}</version>
         </dependency>
 
         <!-- ActiveMQ -->
