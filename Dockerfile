@@ -1,4 +1,4 @@
-FROM ibmjava:jre
+FROM eclipse-temurin:8u392-b08-jdk
 
 RUN apt-get update
 
